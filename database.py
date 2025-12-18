@@ -17,28 +17,14 @@ class DatabaseConnector:
     def connect(self):
         """Establish connection to SQL Server database"""
         try:
-            # Build server string with port if specified
-            server = SQL_SERVER_CONFIG['server']
-            port = SQL_SERVER_CONFIG.get('port')
-            if port:
-                server = f"{server},{port}"
-            
-            # Build connection string
-            conn_str_parts = [
-                f"DRIVER={{{SQL_SERVER_CONFIG['driver']}}};",
-                f"SERVER={server};",
-                f"DATABASE={SQL_SERVER_CONFIG['database']};",
-                f"UID={SQL_SERVER_CONFIG['user']};",
-                f"PWD={SQL_SERVER_CONFIG['password']};",
-            ]
-            
-            # Add TrustServerCertificate if enabled
-            if SQL_SERVER_CONFIG.get('trust_server_certificate', False):
-                conn_str_parts.append("TrustServerCertificate=yes;")
-            else:
-                conn_str_parts.append("Encrypt=no;")
-            
-            conn_str = "".join(conn_str_parts)
+            conn_str = (
+                "DRIVER={ODBC Driver 18 for SQL Server};"
+                f"SERVER={SQL_SERVER_CONFIG['server']};"
+                f"DATABASE={SQL_SERVER_CONFIG['database']};"
+                f"UID={SQL_SERVER_CONFIG['user']};"
+                f"PWD={SQL_SERVER_CONFIG['password']};"
+                "Encrypt=no;"
+            )
             self.connection = pyodbc.connect(conn_str)
             print(f"Connected to SQL Server database: {SQL_SERVER_CONFIG['database']}")
         except pyodbc.Error as e:

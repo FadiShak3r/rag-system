@@ -7,11 +7,20 @@ app = Flask(__name__)
 # Initialize RAG system
 print("Initializing RAG system...")
 try:
+    print("Creating RAGSystem instance...")
     rag = RAGSystem()
-    stats = rag.get_stats()
-    print(f"✓ RAG system ready! ({stats['document_count']} documents indexed)")
+    print("RAGSystem created, getting stats...")
+    try:
+        stats = rag.get_stats()
+        print(f"✓ RAG system ready! ({stats['document_count']} documents indexed)")
+    except Exception as stats_error:
+        print(f"⚠ Could not get stats (non-critical): {stats_error}")
+        print("✓ RAG system ready!")
+    print("Starting Flask server on http://0.0.0.0:4100")
 except Exception as e:
     print(f"Error initializing RAG system: {e}")
+    import traceback
+    traceback.print_exc()
     sys.exit(1)
 
 

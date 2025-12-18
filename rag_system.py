@@ -15,10 +15,14 @@ class RAGSystem:
         if not OPENAI_API_KEY:
             raise ValueError("OPENAI_API_KEY not found in environment variables")
         
+        print("  - Initializing OpenAI client...")
         self.client = OpenAI(api_key=OPENAI_API_KEY)
         self.chat_model = OPENAI_CHAT_MODEL
+        print("  - Creating EmbeddingGenerator...")
         self.embedding_generator = EmbeddingGenerator()
+        print("  - Creating VectorStore...")
         self.vector_store = VectorStore(collection_name=collection_name)
+        print("  - RAGSystem initialization complete")
     
     def query(self, question: str, n_results: int = 10) -> str:
         """Query the RAG system with a question"""

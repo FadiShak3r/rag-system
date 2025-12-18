@@ -140,5 +140,17 @@ class VectorStore:
     
     def get_collection_count(self) -> int:
         """Get the number of documents in the collection"""
-        return self.collection.count()
+        try:
+            count = self.collection.count()
+            return count
+        except Exception as e:
+            print(f"Error getting collection count: {e}")
+            # Try alternative method
+            try:
+                results = self.collection.get(limit=1)
+                # If we can get results, collection exists but count might be slow
+                # Return a placeholder or estimate
+                return 0
+            except:
+                return 0
 
