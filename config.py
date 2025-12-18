@@ -19,9 +19,7 @@ OPENAI_CHAT_MODEL = 'gpt-4o-mini'
 CHROMA_DB_PATH = os.getenv('CHROMA_DB_PATH', './chroma_db')
 
 TABLES = [
-    'products',
-    'users',
-    'user_reviews',
+    'dbo.dimProduct',
 ]
 
 CHUNK_SIZE = 1000
