@@ -7,10 +7,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SQL_SERVER_CONFIG = {
-    'server': os.getenv('SQL_SERVER', 'localhost'),
-    'database': os.getenv('SQL_DATABASE'),
-    'user': os.getenv('SQL_USER'),
-    'password': os.getenv('SQL_PASSWORD'),
+    'driver': os.getenv('MSSQL_DRIVER', 'ODBC Driver 18 for SQL Server'),
+    'server': os.getenv('MSSQL_SERVER', 'localhost'),
+    'port': os.getenv('MSSQL_PORT', '1433'),
+    'database': os.getenv('MSSQL_DATABASE'),
+    'user': os.getenv('MSSQL_UID'),
+    'password': os.getenv('MSSQL_PWD'),
+    'trust_server_certificate': os.getenv('MSSQL_TRUST_SERVER_CERTIFICATE', 'yes').lower() == 'yes',
 }
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')

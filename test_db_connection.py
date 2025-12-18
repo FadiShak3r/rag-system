@@ -14,21 +14,24 @@ def test_connection():
     
     # Display configuration (without password)
     print("\n1. Configuration Check:")
-    print(f"   Server: {SQL_SERVER_CONFIG['server']}")
-    print(f"   Database: {SQL_SERVER_CONFIG['database']}")
-    print(f"   User: {SQL_SERVER_CONFIG['user']}")
-    print(f"   Password: {'*' * len(SQL_SERVER_CONFIG['password']) if SQL_SERVER_CONFIG['password'] else 'NOT SET'}")
+    print(f"   Driver: {SQL_SERVER_CONFIG.get('driver', 'NOT SET')}")
+    print(f"   Server: {SQL_SERVER_CONFIG.get('server', 'NOT SET')}")
+    print(f"   Port: {SQL_SERVER_CONFIG.get('port', 'NOT SET')}")
+    print(f"   Database: {SQL_SERVER_CONFIG.get('database', 'NOT SET')}")
+    print(f"   User: {SQL_SERVER_CONFIG.get('user', 'NOT SET')}")
+    print(f"   Password: {'*' * len(SQL_SERVER_CONFIG['password']) if SQL_SERVER_CONFIG.get('password') else 'NOT SET'}")
+    print(f"   Trust Server Certificate: {SQL_SERVER_CONFIG.get('trust_server_certificate', False)}")
     
     # Check if all required config values are set
     missing_config = []
     if not SQL_SERVER_CONFIG.get('server'):
-        missing_config.append('SQL_SERVER')
+        missing_config.append('MSSQL_SERVER')
     if not SQL_SERVER_CONFIG.get('database'):
-        missing_config.append('SQL_DATABASE')
+        missing_config.append('MSSQL_DATABASE')
     if not SQL_SERVER_CONFIG.get('user'):
-        missing_config.append('SQL_USER')
+        missing_config.append('MSSQL_UID')
     if not SQL_SERVER_CONFIG.get('password'):
-        missing_config.append('SQL_PASSWORD')
+        missing_config.append('MSSQL_PWD')
     
     if missing_config:
         print(f"\n❌ ERROR: Missing configuration values: {', '.join(missing_config)}")
