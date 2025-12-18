@@ -145,9 +145,24 @@ Answer:"""
             return f"Error generating answer: {e}"
     
     def get_stats(self) -> Dict[str, Any]:
-        """Get statistics about the vector store"""
-        return {
-            'collection_name': self.vector_store.collection_name,
-            'document_count': self.vector_store.get_collection_count()
-        }
+        """Get statistics about the vector store
+        
+        Note: This may take a moment for large collections due to count operation.
+        """
+        try:
+            # get_collection_count() has built-in timeout, returns -1 if unavailable
+            doc_count = self.vector_store.get_collection_count()
+            return {
+                'collection_name': self.vector_store.collection_name,
+                'document_count': doc_count if doc_count >= 0 else None,
+                'count_available': doc_count >= 0
+            }
+        except Exception as e:
+            # If stats fail, return what we can
+            return {
+                'collection_name': self.vector_store.collection_name,
+                'document_count': None,
+                'count_available': False,
+                'error': str(e)
+            }
 

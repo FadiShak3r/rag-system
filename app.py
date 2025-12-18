@@ -9,35 +9,10 @@ print("Initializing RAG system...")
 try:
     print("Creating RAGSystem instance...")
     rag = RAGSystem()
-    print("RAGSystem created, getting stats...")
-    # Skip stats retrieval if it takes too long - it's not critical for startup
-    import threading
-    import queue
-    
-    stats_result = queue.Queue()
-    stats_error = queue.Queue()
-    
-    def get_stats_thread():
-        try:
-            stats = rag.get_stats()
-            stats_result.put(stats)
-        except Exception as e:
-            stats_error.put(e)
-    
-    thread = threading.Thread(target=get_stats_thread, daemon=True)
-    thread.start()
-    thread.join(timeout=3)  # Wait max 3 seconds
-    
-    if thread.is_alive():
-        print("⚠ Stats retrieval taking too long, skipping...")
-        print("✓ RAG system ready! (continuing without document count)")
-    elif not stats_error.empty():
-        error = stats_error.get()
-        print(f"⚠ Could not get stats (non-critical): {error}")
-        print("✓ RAG system ready!")
-    else:
-        stats = stats_result.get()
-        print(f"✓ RAG system ready! ({stats['document_count']} documents indexed)")
+    print("RAGSystem created.")
+    # Skip stats retrieval during startup - it's not critical and can hang on large collections
+    # Stats can be retrieved via /api/stats endpoint if needed
+    print("✓ RAG system ready!")
     print("Starting Flask server on http://0.0.0.0:4100")
 except Exception as e:
     print(f"Error initializing RAG system: {e}")
