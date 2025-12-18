@@ -141,15 +141,20 @@ class VectorStore:
     def get_collection_count(self) -> int:
         """Get the number of documents in the collection"""
         try:
+            # For large collections, count() can be very slow
+            # Try a faster approach: get all IDs and count them (still might be slow)
+            # Or just return 0 if it's taking too long
             count = self.collection.count()
             return count
         except Exception as e:
-            print(f"Error getting collection count: {e}")
-            # Try alternative method
+            # If count() fails or is too slow, try to estimate
             try:
-                results = self.collection.get(limit=1)
-                # If we can get results, collection exists but count might be slow
-                # Return a placeholder or estimate
+                # Get a sample to see if collection has data
+                sample = self.collection.peek(limit=1)
+                if sample and sample.get('ids'):
+                    # Collection has data, but we can't get exact count quickly
+                    # Return -1 to indicate "unknown but has data"
+                    return -1
                 return 0
             except:
                 return 0
