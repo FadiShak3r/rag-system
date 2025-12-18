@@ -56,7 +56,39 @@ def index_database(clear_existing: bool = False):
     vector_store.add_documents(chunks_with_embeddings)
     
     print(f"\n✓ Indexing complete! Indexed {len(chunks_with_embeddings)} chunks.")
-    print(f"  Vector store contains {vector_store.get_collection_count()} documents.")
+    
+    # Try to get collection count, but don't block if it's slow
+    try:
+        import threading
+        import queue
+        
+        count_result = queue.Queue()
+        count_error = queue.Queue()
+        
+        def get_count_thread():
+            try:
+                count = vector_store.get_collection_count()
+                count_result.put(count)
+            except Exception as e:
+                count_error.put(e)
+        
+        thread = threading.Thread(target=get_count_thread, daemon=True)
+        thread.start()
+        thread.join(timeout=3)  # Wait max 3 seconds
+        
+        if thread.is_alive():
+            print(f"  Vector store updated (exact count unavailable - collection may be large)")
+        elif not count_error.empty():
+            error = count_error.get()
+            print(f"  Vector store updated (could not get count: {error})")
+        else:
+            count = count_result.get()
+            if count >= 0:
+                print(f"  Vector store contains {count} documents.")
+            else:
+                print(f"  Vector store updated (document count unavailable)")
+    except Exception as e:
+        print(f"  Vector store updated (could not get count: {e})")
 
 
 if __name__ == "__main__":

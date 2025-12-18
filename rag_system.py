@@ -36,7 +36,15 @@ class RAGSystem:
         ])
         
         if is_aggregation_query:
-            n_results = min(50, self.vector_store.get_collection_count())  # Get more results for aggregations
+            # Try to get collection count, but use a safe default if it fails or is slow
+            try:
+                collection_count = self.vector_store.get_collection_count()
+                if collection_count > 0:
+                    n_results = min(50, collection_count)
+                else:
+                    n_results = 50  # Default for aggregation queries
+            except:
+                n_results = 50  # Default if count fails
         
         # Retrieve relevant chunks
         relevant_chunks = self.vector_store.search(question_embedding, n_results=n_results)
