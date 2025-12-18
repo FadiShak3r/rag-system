@@ -48,11 +48,14 @@ def index_database(clear_existing: bool = False):
     
     # Store in vector database
     print("\n4. Storing in vector database...")
+    print("   Creating vector store connection...")
     vector_store = VectorStore()
     
     if clear_existing:
+        print("   Clearing existing collection...")
         vector_store.clear_collection()
     
+    print("   Adding documents (this may take a while for large datasets)...")
     vector_store.add_documents(chunks_with_embeddings)
     
     print(f"\n✓ Indexing complete! Indexed {len(chunks_with_embeddings)} chunks.")
@@ -73,11 +76,46 @@ def index_database(clear_existing: bool = False):
 
 if __name__ == "__main__":
     import sys
+    import os
+    import shutil
     
     clear = False
-    if len(sys.argv) > 1 and sys.argv[1] == "--clear":
-        clear = True
-        print("Will clear existing collection before indexing.")
+    reset_db = False
     
-    index_database(clear_existing=clear)
+    if len(sys.argv) > 1:
+        if "--clear" in sys.argv:
+            clear = True
+            print("Will clear existing collection before indexing.")
+        if "--reset-db" in sys.argv:
+            reset_db = True
+            clear = True
+            print("Will reset ChromaDB database (delete and recreate).")
+    
+    # If resetting, delete the chroma_db directory
+    if reset_db:
+        from config import CHROMA_DB_PATH
+        if os.path.exists(CHROMA_DB_PATH):
+            print(f"Deleting ChromaDB directory: {CHROMA_DB_PATH}")
+            try:
+                shutil.rmtree(CHROMA_DB_PATH)
+                print("✓ ChromaDB directory deleted")
+            except Exception as e:
+                print(f"⚠ Error deleting ChromaDB directory: {e}")
+                print("  Continuing anyway...")
+    
+    try:
+        index_database(clear_existing=clear)
+    except KeyboardInterrupt:
+        print("\n\n⚠ Indexing interrupted by user")
+        print("  Partial data may have been saved. Run again to continue.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n\n❌ Error during indexing: {e}")
+        import traceback
+        traceback.print_exc()
+        print("\n💡 Tips:")
+        print("  - If ChromaDB seems corrupted, try: python3 indexer.py --reset-db --clear")
+        print("  - Check your OpenAI API quota and billing")
+        print("  - Verify database connection is working")
+        sys.exit(1)
 

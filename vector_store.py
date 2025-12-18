@@ -32,32 +32,54 @@ class VectorStore:
             print(f"Created new collection: {self.collection_name}")
             return collection
     
-    def add_documents(self, chunks: List[Dict[str, Any]]):
-        """Add documents with embeddings to the vector store"""
-        ids = []
-        texts = []
-        embeddings = []
-        metadatas = []
+    def add_documents(self, chunks: List[Dict[str, Any]], batch_size: int = 100):
+        """Add documents with embeddings to the vector store
         
-        for idx, chunk in enumerate(chunks):
-            ids.append(f"chunk_{idx}")
-            texts.append(chunk['text'])
-            embeddings.append(chunk['embedding'])
-            metadata = {}
-            for key, value in chunk['metadata'].items():
-                if isinstance(value, (str, int, float, bool)):
-                    metadata[key] = value
-                else:
-                    metadata[key] = str(value)
-            metadatas.append(metadata)
+        Args:
+            chunks: List of chunk dictionaries with 'text', 'embedding', and 'metadata'
+            batch_size: Number of documents to add per batch (default: 100)
+        """
+        total_chunks = len(chunks)
+        print(f"Adding {total_chunks} documents to vector store (in batches of {batch_size})...")
         
-        self.collection.add(
-            ids=ids,
-            embeddings=embeddings,
-            documents=texts,
-            metadatas=metadatas
-        )
-        print(f"Added {len(chunks)} documents to vector store")
+        # Process in batches to avoid memory issues and improve progress tracking
+        for batch_start in range(0, total_chunks, batch_size):
+            batch_end = min(batch_start + batch_size, total_chunks)
+            batch_chunks = chunks[batch_start:batch_end]
+            
+            ids = []
+            texts = []
+            embeddings = []
+            metadatas = []
+            
+            for idx, chunk in enumerate(batch_chunks):
+                chunk_idx = batch_start + idx
+                ids.append(f"chunk_{chunk_idx}")
+                texts.append(chunk['text'])
+                embeddings.append(chunk['embedding'])
+                metadata = {}
+                for key, value in chunk['metadata'].items():
+                    if isinstance(value, (str, int, float, bool)):
+                        metadata[key] = value
+                    else:
+                        metadata[key] = str(value)
+                metadatas.append(metadata)
+            
+            # Add batch to collection
+            try:
+                self.collection.add(
+                    ids=ids,
+                    embeddings=embeddings,
+                    documents=texts,
+                    metadatas=metadatas
+                )
+                print(f"  ✓ Added batch {batch_start//batch_size + 1}/{(total_chunks-1)//batch_size + 1} ({len(batch_chunks)} documents, {batch_end}/{total_chunks} total)")
+            except Exception as e:
+                print(f"  ⚠ Error adding batch {batch_start//batch_size + 1}: {e}")
+                # Continue with next batch even if one fails
+                continue
+        
+        print(f"✓ Completed adding documents to vector store")
     
     def clear_collection(self):
         """Clear all documents from the collection"""
