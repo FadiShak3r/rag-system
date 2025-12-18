@@ -57,38 +57,18 @@ def index_database(clear_existing: bool = False):
     
     print(f"\n✓ Indexing complete! Indexed {len(chunks_with_embeddings)} chunks.")
     
-    # Try to get collection count, but don't block if it's slow
+    # Try to get collection count (has built-in timeout, won't hang)
+    print("  Getting collection count (this may take a moment for large collections)...")
     try:
-        import threading
-        import queue
-        
-        count_result = queue.Queue()
-        count_error = queue.Queue()
-        
-        def get_count_thread():
-            try:
-                count = vector_store.get_collection_count()
-                count_result.put(count)
-            except Exception as e:
-                count_error.put(e)
-        
-        thread = threading.Thread(target=get_count_thread, daemon=True)
-        thread.start()
-        thread.join(timeout=3)  # Wait max 3 seconds
-        
-        if thread.is_alive():
-            print(f"  Vector store updated (exact count unavailable - collection may be large)")
-        elif not count_error.empty():
-            error = count_error.get()
-            print(f"  Vector store updated (could not get count: {error})")
+        count = vector_store.get_collection_count()
+        if count >= 0:
+            print(f"  ✓ Vector store contains {count} documents.")
         else:
-            count = count_result.get()
-            if count >= 0:
-                print(f"  Vector store contains {count} documents.")
-            else:
-                print(f"  Vector store updated (document count unavailable)")
+            print(f"  ✓ Vector store updated (exact count unavailable - collection is large)")
     except Exception as e:
-        print(f"  Vector store updated (could not get count: {e})")
+        print(f"  ✓ Vector store updated (count unavailable: {e})")
+    
+    print("\n🎉 All done! You can now start the chatbot with: python3 app.py")
 
 
 if __name__ == "__main__":

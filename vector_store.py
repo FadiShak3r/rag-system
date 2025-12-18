@@ -139,23 +139,43 @@ class VectorStore:
         return formatted_results
     
     def get_collection_count(self) -> int:
-        """Get the number of documents in the collection"""
-        try:
-            # For large collections, count() can be very slow
-            # Try a faster approach: get all IDs and count them (still might be slow)
-            # Or just return 0 if it's taking too long
-            count = self.collection.count()
-            return count
-        except Exception as e:
-            # If count() fails or is too slow, try to estimate
+        """Get the number of documents in the collection
+        
+        Note: For large collections, count() can be very slow or hang.
+        This method uses a timeout to prevent hanging.
+        """
+        import threading
+        import queue
+        
+        result_queue = queue.Queue()
+        error_queue = queue.Queue()
+        
+        def count_thread():
             try:
-                # Get a sample to see if collection has data
+                # This can hang on large collections
+                count = self.collection.count()
+                result_queue.put(count)
+            except Exception as e:
+                error_queue.put(e)
+        
+        # Run count in a separate thread with timeout
+        thread = threading.Thread(target=count_thread, daemon=True)
+        thread.start()
+        thread.join(timeout=2)  # Max 2 seconds wait
+        
+        if thread.is_alive():
+            # Count is taking too long, return -1 to indicate "unknown"
+            return -1
+        elif not error_queue.empty():
+            # Count failed, try to check if collection has data
+            try:
                 sample = self.collection.peek(limit=1)
                 if sample and sample.get('ids'):
-                    # Collection has data, but we can't get exact count quickly
-                    # Return -1 to indicate "unknown but has data"
-                    return -1
+                    return -1  # Has data but count unavailable
                 return 0
             except:
                 return 0
+        else:
+            # Got the count successfully
+            return result_queue.get()
 
