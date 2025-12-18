@@ -1,10 +1,10 @@
-# MySQL RAG System
+# SQL Server RAG System
 
-Ein RAG-System (Retrieval-Augmented Generation) zum Abfragen von MySQL-Datenbanktabellen mit OpenAI-Embeddings und GPT-Modellen.
+Ein RAG-System (Retrieval-Augmented Generation) zum Abfragen von SQL Server-Datenbanktabellen mit OpenAI-Embeddings und GPT-Modellen.
 
 ## Funktionen
 
-- Automatische Datenextraktion aus MySQL-Tabellen
+- Automatische Datenextraktion aus SQL Server-Tabellen
 - OpenAI-Embeddings für Vektordarstellungen
 - ChromaDB für schnelle Ähnlichkeitssuche
 - Web-Chatbot-Interface zum Stellen von Fragen
@@ -23,12 +23,11 @@ pip install -r requirements.txt
 Erstelle eine `.env` Datei im Projektverzeichnis:
 
 ```env
-# MySQL Konfiguration
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-MYSQL_USER=dein_benutzername
-MYSQL_PASSWORD=dein_passwort
-MYSQL_DATABASE=deine_datenbank
+# SQL Server Konfiguration
+SQL_SERVER=134.103.216.87
+SQL_DATABASE=AdventureWorksDW2022
+SQL_USER=SA
+SQL_PASSWORD=MeinSicheresPW123!
 
 # OpenAI Konfiguration
 OPENAI_API_KEY=dein_openai_api_key
@@ -71,7 +70,7 @@ python daily_sync.py --run-once
 
 ```
 ├── config.py          # Konfiguration
-├── database.py        # MySQL-Verbindung
+├── database.py        # SQL Server-Verbindung
 ├── data_processor.py  # Datenverarbeitung
 ├── embedding.py       # Embedding-Generierung
 ├── vector_store.py    # Vektorspeicher
@@ -82,9 +81,17 @@ python daily_sync.py --run-once
 └── requirements.txt   # Abhängigkeiten
 ```
 
+## Unterstützte Tabellen
+
+Das System indexiert aktuell die folgende Tabelle:
+- `dbo.dimProduct` - Produktdimensionstabelle mit vollständigen Produktinformationen
+
 ## Fehlerbehebung
 
-**MySQL-Verbindungsfehler**: Überprüfe die Zugangsdaten in `.env`
+**SQL Server-Verbindungsfehler**: 
+- Überprüfe die Zugangsdaten in `.env`
+- Stelle sicher, dass der ODBC Driver 18 for SQL Server installiert ist
+- Überprüfe, ob der SQL Server erreichbar ist und die Firewall-Regeln korrekt sind
 
 **OpenAI API-Fehler**: 
 - API-Schlüssel in `.env` überprüfen
