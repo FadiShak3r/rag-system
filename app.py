@@ -1,3 +1,6 @@
+"""
+Product Database Assistant - Web Chatbot Interface
+"""
 from flask import Flask, render_template, request, jsonify
 from rag_system import RAGSystem
 import sys
@@ -5,17 +8,20 @@ import sys
 app = Flask(__name__)
 
 # Initialize RAG system
-print("Initializing RAG system...")
+print("\n" + "=" * 50)
+print("PRODUCT DATABASE ASSISTANT")
+print("=" * 50)
+print("\nInitializing...")
+
 try:
-    print("Creating RAGSystem instance...")
     rag = RAGSystem()
-    print("RAGSystem created.")
-    # Skip stats retrieval during startup - it's not critical and can hang on large collections
-    # Stats can be retrieved via /api/stats endpoint if needed
-    print("✓ RAG system ready!")
-    print("Starting Flask server on http://0.0.0.0:4100")
+    stats = rag.get_stats()
+    doc_count = stats.get('document_count', 'unknown')
+    print(f"\n✓ Ready! ({doc_count} documents indexed)")
+    print(f"\n🌐 Open http://localhost:4100 in your browser")
+    print("=" * 50 + "\n")
 except Exception as e:
-    print(f"Error initializing RAG system: {e}")
+    print(f"\n❌ Error: {e}")
     import traceback
     traceback.print_exc()
     sys.exit(1)

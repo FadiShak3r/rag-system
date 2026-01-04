@@ -72,7 +72,7 @@ If this fails, fix the connection issues before proceeding.
 
 ## Step 4: Index the Database
 
-This step extracts data from your SQL Server table (`dbo.dimProduct`), creates embeddings, and stores them in the vector database.
+This step extracts data from your SQL Server table (`DimProduct`), creates embeddings, and stores them in the vector database.
 
 **First time indexing:**
 ```bash
@@ -86,7 +86,7 @@ python3 indexer.py
 
 **What happens:**
 1. Connects to SQL Server
-2. Extracts data from `dbo.dimProduct` table
+2. Extracts data from `DimProduct` table
 3. Processes and chunks the data
 4. Generates OpenAI embeddings (this may take a while depending on data size)
 5. Stores everything in ChromaDB vector store
@@ -97,7 +97,7 @@ Starting database indexing...
 
 1. Connecting to database and extracting data...
 Connected to SQL Server database: AdventureWorksDW2022
-Retrieved X rows from dbo.dimProduct
+Retrieved X rows from DimProduct
 
 2. Processing and chunking data...
 Created Y chunks from Z documents
@@ -191,7 +191,7 @@ You should see the chatbot interface where you can ask questions about your prod
 
 ### Issue: "No data found in tables"
 **Solution:**
-- Verify table name in `config.py` is correct: `dbo.dimProduct`
+- Verify table name in `config.py` is correct: `DimProduct`
 - Check database connection works
 - Verify table has data
 

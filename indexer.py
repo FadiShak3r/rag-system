@@ -21,29 +21,28 @@ def index_database(clear_existing: bool = False):
         print("No data found in tables. Exiting.")
         return
     
-    # Process and chunk the data
-    print("\n2. Processing and chunking data...")
+    # Process the data into documents
+    print("\n2. Processing data into documents...")
     processor = DataProcessor()
-    chunks = processor.process_tables(tables_data)
+    documents = processor.process_tables(tables_data)
     
-    if not chunks:
-        print("No chunks created. Exiting.")
+    if not documents:
+        print("No documents created. Exiting.")
         return
     
     # Generate embeddings
     print("\n3. Generating embeddings...")
-    print(f"   Processing {len(chunks)} chunks with batch size 10 and 1s delay between batches")
-    print("   (This helps avoid rate limits. Adjust in embedding.py if needed)")
+    print(f"   Processing {len(documents)} documents")
+    print("   (Using batch size 10 with 1s delay to avoid rate limits)")
     embedding_gen = EmbeddingGenerator(batch_size=10, delay_between_batches=1.0)
     
     try:
-        chunks_with_embeddings = embedding_gen.add_embeddings_to_chunks(chunks)
+        documents_with_embeddings = embedding_gen.add_embeddings_to_chunks(documents)
     except Exception as e:
-        print(f"\n Error during embedding generation: {e}")
+        print(f"\n❌ Error during embedding generation: {e}")
         print("\nTips:")
         print("  - Check your OpenAI API quota at https://platform.openai.com/account/billing")
         print("  - Wait a few minutes and try again (rate limits reset over time)")
-        print("  - Reduce batch_size or increase delay_between_batches in embedding.py")
         raise
     
     # Store in vector database
@@ -55,10 +54,10 @@ def index_database(clear_existing: bool = False):
         print("   Clearing existing collection...")
         vector_store.clear_collection()
     
-    print("   Adding documents (this may take a while for large datasets)...")
-    vector_store.add_documents(chunks_with_embeddings)
+    print("   Adding documents to vector store...")
+    vector_store.add_documents(documents_with_embeddings)
     
-    print(f"\n✓ Indexing complete! Indexed {len(chunks_with_embeddings)} chunks.")
+    print(f"\n✓ Indexing complete! Indexed {len(documents_with_embeddings)} documents.")
     
     # Try to get collection count (has built-in timeout, won't hang)
     print("  Getting collection count (this may take a moment for large collections)...")

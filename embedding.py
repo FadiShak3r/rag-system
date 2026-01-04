@@ -10,6 +10,10 @@ from config import OPENAI_API_KEY, OPENAI_EMBEDDING_MODEL
 class EmbeddingGenerator:
     """Generates embeddings using OpenAI API with retry logic and rate limiting"""
     
+    # Max tokens for text-embedding-3-small is 8191
+    # Using ~4 chars per token as rough estimate, limit to ~30000 chars to be safe
+    MAX_TEXT_LENGTH = 30000
+    
     def __init__(self, batch_size: int = 10, delay_between_batches: float = 1.0):
         if not OPENAI_API_KEY:
             raise ValueError("OPENAI_API_KEY not found in environment variables")
@@ -20,8 +24,25 @@ class EmbeddingGenerator:
         self.max_retries = 5
         self.base_delay = 2.0
     
+    def truncate_text(self, text: str) -> str:
+        """Truncate text to fit within token limits"""
+        if len(text) <= self.MAX_TEXT_LENGTH:
+            return text
+        
+        # Truncate and add indicator
+        truncated = text[:self.MAX_TEXT_LENGTH - 50]
+        # Try to cut at last complete line
+        last_newline = truncated.rfind('\n')
+        if last_newline > self.MAX_TEXT_LENGTH - 500:
+            truncated = truncated[:last_newline]
+        
+        return truncated + "\n\n[Content truncated due to length]"
+    
     def generate_embedding(self, text: str, retry_count: int = 0) -> List[float]:
         """Generate embedding for a single text with retry logic"""
+        # Truncate if too long
+        text = self.truncate_text(text)
+        
         try:
             response = self.client.embeddings.create(
                 model=self.model,
@@ -46,6 +67,9 @@ class EmbeddingGenerator:
     
     def generate_embeddings_batch(self, texts: List[str], start_index: int = 0) -> List[List[float]]:
         """Generate embeddings for multiple texts in batches with retry logic"""
+        # Truncate all texts first
+        texts = [self.truncate_text(t) for t in texts]
+        
         all_embeddings = []
         total_batches = (len(texts) - 1) // self.batch_size + 1
         

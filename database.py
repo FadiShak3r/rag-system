@@ -16,9 +16,40 @@ class DatabaseConnector:
     
     def connect(self):
         """Establish connection to SQL Server database"""
+        # Check available drivers first
+        available_drivers = pyodbc.drivers()
+        driver_name = SQL_SERVER_CONFIG.get('driver', 'ODBC Driver 18 for SQL Server')
+        
+        # Try to find a suitable SQL Server driver
+        sql_server_drivers = [
+            'ODBC Driver 18 for SQL Server',
+            'ODBC Driver 17 for SQL Server',
+            'ODBC Driver 13 for SQL Server',
+            'FreeTDS',
+        ]
+        
+        selected_driver = None
+        for driver in sql_server_drivers:
+            if driver in available_drivers:
+                selected_driver = driver
+                break
+        
+        if not selected_driver:
+            print("\n❌ No SQL Server ODBC driver found!")
+            print(f"\nAvailable drivers: {', '.join(available_drivers) if available_drivers else 'None'}")
+            print("\n📦 To install the Microsoft ODBC Driver for SQL Server on macOS:")
+            print("   1. Run: brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release")
+            print("   2. Run: brew install msodbcsql18")
+            print("\n   Or download from: https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server")
+            print("\n   After installation, verify with: python3 -c \"import pyodbc; print(pyodbc.drivers())\"")
+            raise pyodbc.Error("ODBC Driver for SQL Server not found. Please install it first.")
+        
+        if selected_driver != driver_name:
+            print(f"⚠️  Using driver: {selected_driver} (instead of {driver_name})")
+        
         try:
             conn_str = (
-                "DRIVER={ODBC Driver 18 for SQL Server};"
+                f"DRIVER={{{selected_driver}}};"
                 f"SERVER={SQL_SERVER_CONFIG['server']};"
                 f"DATABASE={SQL_SERVER_CONFIG['database']};"
                 f"UID={SQL_SERVER_CONFIG['user']};"

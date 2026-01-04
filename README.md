@@ -84,7 +84,7 @@ python daily_sync.py --run-once
 ## Unterstützte Tabellen
 
 Das System indexiert aktuell die folgende Tabelle:
-- `dbo.dimProduct` - Produktdimensionstabelle mit vollständigen Produktinformationen
+- `DimProduct` - Produktdimensionstabelle mit vollständigen Produktinformationen
 
 ## Fehlerbehebung
 
