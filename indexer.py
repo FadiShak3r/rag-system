@@ -34,7 +34,7 @@ def index_database(clear_existing: bool = False):
     print("\n3. Generating embeddings...")
     print(f"   Processing {len(documents)} documents")
     print("   (Using batch size 10 with 1s delay to avoid rate limits)")
-    embedding_gen = EmbeddingGenerator(batch_size=10, delay_between_batches=1.0)
+    embedding_gen = EmbeddingGenerator(batch_size=10, delay_between_batches=0.2)
     
     try:
         documents_with_embeddings = embedding_gen.add_embeddings_to_chunks(documents)

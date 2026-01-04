@@ -23,6 +23,8 @@ CHROMA_DB_PATH = os.getenv('CHROMA_DB_PATH', './chroma_db')
 
 TABLES = [
     'DimProduct',
+    'DimCustomer',
+    'FactProductInventory',
 ]
 
 CHUNK_SIZE = 1000

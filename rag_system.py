@@ -39,34 +39,82 @@ class RAGSystem:
         if not results:
             return ""
         
-        # Check if this is a statistics/count question - if so, prioritize summary
         question_lower = question.lower()
+        
+        # Check if this is a statistics/count question
         is_stats_question = any(word in question_lower for word in [
             'how many', 'total', 'count', 'number of', 'average', 'highest', 'lowest',
-            'most expensive', 'cheapest', 'all products', 'list all', 'statistics'
+            'most expensive', 'cheapest', 'all products', 'all customers', 'list all', 
+            'statistics', 'income', 'gender', 'occupation', 'education'
         ])
         
-        # Separate summary and product documents
-        summary_docs = [r for r in results if r['metadata'].get('type') == 'summary']
+        # Check if question is about customers, products, or inventory
+        is_customer_question = any(word in question_lower for word in [
+            'customer', 'customers', 'person', 'people', 'income', 'gender', 'married',
+            'single', 'occupation', 'education', 'children', 'email', 'phone', 'address'
+        ])
+        
+        is_product_question = any(word in question_lower for word in [
+            'product', 'products', 'price', 'color', 'size', 'weight', 'model'
+        ])
+        
+        is_inventory_question = any(word in question_lower for word in [
+            'inventory', 'stock', 'units', 'balance', 'movement', 'units in', 'units out',
+            'warehouse', 'supply', 'quantity', 'available'
+        ])
+        
+        # Separate by document type
+        summary_docs = [r for r in results if 'summary' in r['metadata'].get('type', '')]
         product_docs = [r for r in results if r['metadata'].get('type') == 'product']
+        customer_docs = [r for r in results if r['metadata'].get('type') == 'customer']
+        inventory_docs = [r for r in results if r['metadata'].get('type') == 'inventory']
         
-        # For stats questions, always try to get the summary
-        if is_stats_question and not summary_docs:
-            try:
-                summary_results = self.vector_store.get_by_metadata(
-                    where={"type": "summary"},
-                    n_results=1
-                )
-                if summary_results:
-                    summary_docs = summary_results
-            except:
-                pass
-        
-        # Order: summary first for stats questions, otherwise products first
+        # For stats questions, try to get the appropriate summary
         if is_stats_question:
-            ordered_results = summary_docs + product_docs
+            if is_inventory_question:
+                try:
+                    inventory_summaries = self.vector_store.get_by_metadata(
+                        where={"type": "inventory_summary"},
+                        n_results=1
+                    )
+                    if inventory_summaries:
+                        summary_docs = inventory_summaries + summary_docs
+                except:
+                    pass
+            
+            if is_customer_question:
+                try:
+                    customer_summaries = self.vector_store.get_by_metadata(
+                        where={"type": "customer_summary"},
+                        n_results=1
+                    )
+                    if customer_summaries:
+                        summary_docs = customer_summaries + summary_docs
+                except:
+                    pass
+            
+            if is_product_question or (not is_customer_question and not is_inventory_question):
+                try:
+                    product_summaries = self.vector_store.get_by_metadata(
+                        where={"type": "product_summary"},
+                        n_results=1
+                    )
+                    if product_summaries:
+                        summary_docs = product_summaries + summary_docs
+                except:
+                    pass
+        
+        # Order results based on question type
+        if is_stats_question:
+            ordered_results = summary_docs + inventory_docs + customer_docs + product_docs
+        elif is_inventory_question:
+            ordered_results = inventory_docs + summary_docs + product_docs + customer_docs
+        elif is_customer_question:
+            ordered_results = customer_docs + summary_docs + product_docs + inventory_docs
+        elif is_product_question:
+            ordered_results = product_docs + summary_docs + customer_docs + inventory_docs
         else:
-            ordered_results = product_docs + summary_docs
+            ordered_results = results
         
         # Build context string
         context_parts = []
@@ -90,13 +138,13 @@ class RAGSystem:
             return "I don't have any product information in my database yet. Please run the indexer first."
         
         # Create the prompt
-        prompt = f"""You are a helpful assistant that answers questions about products in a database.
+        prompt = f"""You are a helpful assistant that answers questions about products, customers, and inventory in a database.
 
 RULES:
 1. Answer ONLY using the information provided in the CONTEXT below.
 2. If the answer is not in the context, say "I don't know" or "I don't have that information."
-3. Be specific - use exact product names, prices, and details from the context.
-4. For statistics (totals, averages, counts), look for the DATABASE SUMMARY section.
+3. Be specific - use exact names, numbers, and details from the context.
+4. For statistics (totals, averages, counts), look for the DATABASE STATISTICS section.
 5. Never make up information.
 
 CONTEXT:
@@ -113,7 +161,7 @@ ANSWER:"""
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a helpful product database assistant. Answer questions accurately using only the provided context. If you don't know or the information isn't in the context, say 'I don't know' or 'I don't have that information.'"
+                        "content": "You are a helpful database assistant for products, customers, and inventory. Answer questions accurately using only the provided context. If you don't know or the information isn't in the context, say 'I don't know' or 'I don't have that information.'"
                     },
                     {
                         "role": "user",

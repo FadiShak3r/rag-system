@@ -280,21 +280,22 @@
         <div class="chat-messages" id="chatMessages">
             <div class="message bot">
                 <div class="message-bubble">
-                    Hello! I'm your product database assistant. I can help you with:
+                    Hello! I'm your database assistant. I can help you with:
 
-• Product information (names, prices, colors, sizes)
-• Statistics (totals, averages, highest/lowest prices)
-• Finding specific products
+• Products (names, prices, colors, sizes, models)
+• Customers (demographics, income, occupation)
+• Inventory (stock levels, units in/out, balances)
 
 What would you like to know?
                 </div>
                 <div class="message-time">Just now</div>
             </div>
             <div class="suggestions" id="suggestions">
-                <span class="suggestion" onclick="askQuestion('How many products are in the database?')">How many products?</span>
-                <span class="suggestion" onclick="askQuestion('What is the most expensive product?')">Most expensive product</span>
-                <span class="suggestion" onclick="askQuestion('What colors are available?')">Available colors</span>
-                <span class="suggestion" onclick="askQuestion('Show me the average product price')">Average price</span>
+                <span class="suggestion" onclick="askQuestion('How many products are in the database?')">Products count</span>
+                <span class="suggestion" onclick="askQuestion('How many customers are there?')">Customers count</span>
+                <span class="suggestion" onclick="askQuestion('What is the total inventory?')">Total inventory</span>
+                <span class="suggestion" onclick="askQuestion('What is the most expensive product?')">Expensive product</span>
+                <span class="suggestion" onclick="askQuestion('What is the average customer income?')">Avg income</span>
             </div>
         </div>
         
