@@ -264,6 +264,63 @@
             color: #fff;
             border-color: #444;
         }
+
+        .metabase-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 12px;
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .metabase-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+        }
+
+        .metabase-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .metabase-btn .icon {
+            font-size: 14px;
+        }
+
+        .metabase-btn .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        .metabase-status {
+            font-size: 11px;
+            color: #888;
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        .metabase-status.error {
+            color: #ef4444;
+        }
+
+        .metabase-status.success {
+            color: #22c55e;
+        }
     </style>
 </head>
 <body>
@@ -322,7 +379,23 @@ What would you like to know?
         const sendButton = document.getElementById('sendButton');
         const suggestions = document.getElementById('suggestions');
 
-        function addMessage(text, isUser) {
+        let metabaseConfigured = false;
+        let metabaseBaseUrl = '';
+
+        // Check Metabase configuration on load
+        async function checkMetabaseConfig() {
+            try {
+                const response = await fetch('/api/metabase/config');
+                const data = await response.json();
+                metabaseConfigured = data.configured;
+                metabaseBaseUrl = data.base_url;
+            } catch (e) {
+                console.log('Metabase config check failed:', e);
+            }
+        }
+        checkMetabaseConfig();
+
+        function addMessage(text, isUser, originalQuestion = null) {
             // Hide suggestions after first message
             if (suggestions) {
                 suggestions.style.display = 'none';
@@ -335,6 +408,19 @@ What would you like to know?
             bubble.className = 'message-bubble';
             bubble.textContent = text;
             
+            // Add Metabase button for bot responses (not for errors)
+            if (!isUser && metabaseConfigured && !text.toLowerCase().startsWith('error')) {
+                const buttonContainer = document.createElement('div');
+                
+                const metabaseBtn = document.createElement('button');
+                metabaseBtn.className = 'metabase-btn';
+                metabaseBtn.innerHTML = '<span class="icon">📊</span> View in Metabase';
+                metabaseBtn.onclick = () => createMetabaseCard(originalQuestion || text, metabaseBtn, buttonContainer);
+                
+                buttonContainer.appendChild(metabaseBtn);
+                bubble.appendChild(buttonContainer);
+            }
+            
             const time = document.createElement('div');
             time.className = 'message-time';
             time.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -344,6 +430,78 @@ What would you like to know?
             chatMessages.appendChild(messageDiv);
             
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function createMetabaseCard(question, button, container) {
+            // Prevent multiple clicks
+            if (button.disabled) return;
+            
+            button.disabled = true;
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<span class="icon">📊</span> Creating<span class="spinner"></span>';
+            
+            // Remove any existing status
+            const existingStatus = container.querySelector('.metabase-status');
+            if (existingStatus) existingStatus.remove();
+            
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'metabase-status';
+            container.appendChild(statusDiv);
+            
+            try {
+                // Step 1: Create the card
+                statusDiv.textContent = 'Creating Metabase card...';
+                
+                const createResponse = await fetch('/api/card', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question })
+                });
+                
+                const createData = await createResponse.json();
+                
+                if (!createResponse.ok) {
+                    throw new Error(createData.error || 'Failed to create card');
+                }
+                
+                const cardId = createData.card_id;
+                statusDiv.textContent = `Card created (ID: ${cardId}). Generating public link...`;
+                button.innerHTML = '<span class="icon">📊</span> Generating link<span class="spinner"></span>';
+                
+                // Step 2: Create public link
+                const linkResponse = await fetch(`/api/metabase/public-link/${cardId}`, {
+                    method: 'POST'
+                });
+                
+                const linkData = await linkResponse.json();
+                
+                if (!linkResponse.ok) {
+                    throw new Error(linkData.error || 'Failed to create public link');
+                }
+                
+                // Success! Open in new tab
+                statusDiv.className = 'metabase-status success';
+                statusDiv.textContent = 'Opening in new tab...';
+                button.innerHTML = '<span class="icon">✓</span> Opened';
+                
+                window.open(linkData.public_url, '_blank');
+                
+                // Reset after a moment
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.innerHTML = originalHTML;
+                    statusDiv.textContent = '';
+                }, 3000);
+                
+            } catch (error) {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+                
+                statusDiv.className = 'metabase-status error';
+                statusDiv.textContent = error.message;
+                
+                console.error('Metabase error:', error);
+            }
         }
 
         function addTypingIndicator() {
@@ -401,7 +559,8 @@ What would you like to know?
                 removeTypingIndicator();
                 
                 if (response.ok) {
-                    addMessage(data.answer, false);
+                    // Pass the original question for Metabase card creation
+                    addMessage(data.answer, false, question);
                 } else {
                     addMessage(`Error: ${data.error || 'Something went wrong'}`, false);
                 }

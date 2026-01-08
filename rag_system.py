@@ -1,9 +1,10 @@
 """
 RAG System - Simple, reliable question answering over product database
 """
+import json
 from openai import OpenAI
-from typing import List, Dict, Any
-from config import OPENAI_API_KEY, OPENAI_CHAT_MODEL
+from typing import List, Dict, Any, Optional
+from config import OPENAI_API_KEY, OPENAI_CHAT_MODEL, DB_SCHEMA, META_BASE_DATABASE_ID
 from embedding import EmbeddingGenerator
 from vector_store import VectorStore
 
@@ -194,3 +195,87 @@ ANSWER:"""
                 'status': 'error',
                 'error': str(e)
             }
+    
+    def generate_metabase_card(self, question: str) -> Optional[Dict[str, Any]]:
+        """Generate Metabase card configuration for a question"""
+        
+        prompt = f"""You are a SQL and data visualization expert. Based on the user's question and the database schema below, generate a Metabase card configuration.
+
+DATABASE SCHEMA:
+{DB_SCHEMA}
+
+USER QUESTION: {question}
+
+Generate a JSON object with the following structure:
+{{
+    "name": "Descriptive title for the chart",
+    "description": "Brief description of what this chart shows",
+    "query": "Valid SQL SELECT query that answers the question",
+    "display": "chart type: bar, line, pie, table, scalar, row, area, combo, scatter, funnel, progress, gauge, waterfall",
+    "visualization_settings": {{
+        "graph.dimensions": ["column_name_for_x_axis"],
+        "graph.metrics": ["column_name_for_y_axis"]
+    }}
+}}
+
+RULES:
+1. Write valid SQL Server syntax
+2. Use only tables and columns from the schema
+3. Choose appropriate visualization type (use "table" for lists, "bar" for comparisons, "pie" for distributions, "scalar" for single values, "line" for trends)
+4. For scalar/single value results, use "display": "scalar"
+5. Keep queries simple and efficient
+6. Always include appropriate GROUP BY for aggregations
+7. Return ONLY valid JSON, no explanations
+
+JSON:"""
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.chat_model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a SQL and data visualization expert. Return only valid JSON, no markdown or explanations."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0.1,
+                max_tokens=1000
+            )
+            
+            result_text = response.choices[0].message.content.strip()
+            
+            # Remove markdown code blocks if present
+            if result_text.startswith("```"):
+                lines = result_text.split("\n")
+                # Remove first and last lines (```json and ```)
+                result_text = "\n".join(lines[1:-1])
+            
+            card_config = json.loads(result_text)
+            
+            # Build the Metabase card format
+            metabase_card = {
+                "name": card_config.get("name", question[:50]),
+                "description": card_config.get("description", f"Generated from: {question}"),
+                "dataset_query": {
+                    "database": META_BASE_DATABASE_ID,
+                    "type": "native",
+                    "native": {
+                        "query": card_config.get("query", "")
+                    }
+                },
+                "display": card_config.get("display", "table"),
+                "visualization_settings": card_config.get("visualization_settings", {})
+            }
+            
+            return metabase_card
+            
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON response: {e}")
+            return None
+        except Exception as e:
+            print(f"Error generating Metabase card: {e}")
+            return None
