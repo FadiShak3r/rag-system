@@ -598,6 +598,433 @@ class DataProcessor:
         
         return {'text': summary_text, 'metadata': metadata}
     
+    # ==================== COMPETITOR PRODUCT PROCESSING ====================
+    
+    def process_competitor_product_row(self, row: pd.Series, table_name: str) -> Dict[str, Any]:
+        """Convert a competitor product row into a rich, complete document"""
+        
+        product_key = row.get('ProductKey', 'Unknown')
+        product_name = row.get('EnglishProductName', 'Unknown Product')
+        company = row.get('Company', 'Unknown Company')
+        
+        lines = []
+        
+        # === PRODUCT IDENTITY ===
+        lines.append(f"COMPETITOR PRODUCT: {product_name}")
+        lines.append(f"Company: {company}")
+        lines.append(f"Product Key: {product_key}")
+        
+        if pd.notna(row.get('ProductAlternateKey')):
+            lines.append(f"Alternate Key: {row.get('ProductAlternateKey')}")
+        
+        if pd.notna(row.get('ProductSubcategoryKey')):
+            lines.append(f"Subcategory Key: {row.get('ProductSubcategoryKey')}")
+        
+        # === PRICING ===
+        if pd.notna(row.get('ListPrice')):
+            lines.append(f"List Price: ${float(row.get('ListPrice')):.2f}")
+        
+        if pd.notna(row.get('StandardCost')):
+            lines.append(f"Standard Cost: ${float(row.get('StandardCost')):.2f}")
+        
+        if pd.notna(row.get('DealerPrice')):
+            lines.append(f"Dealer Price: ${float(row.get('DealerPrice')):.2f}")
+        
+        # === PHYSICAL CHARACTERISTICS ===
+        if pd.notna(row.get('Color')):
+            lines.append(f"Color: {row.get('Color')}")
+        
+        if pd.notna(row.get('Size')):
+            lines.append(f"Size: {row.get('Size')}")
+        
+        if pd.notna(row.get('SizeRange')):
+            lines.append(f"Size Range: {row.get('SizeRange')}")
+        
+        if pd.notna(row.get('SizeUnitMeasureCode')):
+            lines.append(f"Size Unit: {row.get('SizeUnitMeasureCode')}")
+        
+        if pd.notna(row.get('Weight')):
+            lines.append(f"Weight: {row.get('Weight')}")
+        
+        if pd.notna(row.get('WeightUnitMeasureCode')):
+            lines.append(f"Weight Unit: {row.get('WeightUnitMeasureCode')}")
+        
+        # === CLASSIFICATION ===
+        if pd.notna(row.get('ProductLine')):
+            product_line = row.get('ProductLine')
+            line_names = {'M': 'Mountain', 'R': 'Road', 'S': 'Specialty', 'T': 'Touring'}
+            line_display = line_names.get(product_line, product_line)
+            lines.append(f"Product Line: {line_display} ({product_line})")
+        
+        if pd.notna(row.get('Class')):
+            product_class = row.get('Class')
+            class_names = {'H': 'High', 'M': 'Medium', 'L': 'Low'}
+            class_display = class_names.get(product_class, product_class)
+            lines.append(f"Class: {class_display} ({product_class})")
+        
+        if pd.notna(row.get('Style')):
+            style = row.get('Style')
+            style_names = {'M': 'Men', 'W': 'Women', 'U': 'Universal'}
+            style_display = style_names.get(style, style)
+            lines.append(f"Style: {style_display} ({style})")
+        
+        if pd.notna(row.get('ModelName')):
+            lines.append(f"Model: {row.get('ModelName')}")
+        
+        # === MANUFACTURING ===
+        if pd.notna(row.get('DaysToManufacture')):
+            lines.append(f"Days to Manufacture: {row.get('DaysToManufacture')}")
+        
+        if pd.notna(row.get('FinishedGoodsFlag')):
+            finished = "Yes" if row.get('FinishedGoodsFlag') else "No"
+            lines.append(f"Finished Good: {finished}")
+        
+        # === INVENTORY ===
+        if pd.notna(row.get('SafetyStockLevel')):
+            lines.append(f"Safety Stock Level: {row.get('SafetyStockLevel')}")
+        
+        if pd.notna(row.get('ReorderPoint')):
+            lines.append(f"Reorder Point: {row.get('ReorderPoint')}")
+        
+        # === MULTILINGUAL NAMES ===
+        if pd.notna(row.get('SpanishProductName')):
+            lines.append(f"Spanish Name: {row.get('SpanishProductName')}")
+        
+        if pd.notna(row.get('FrenchProductName')):
+            lines.append(f"French Name: {row.get('FrenchProductName')}")
+        
+        # === DESCRIPTION ===
+        description = None
+        for desc_field in ['EnglishDescription', 'GermanDescription', 'FrenchDescription', 
+                           'ChineseDescription', 'ArabicDescription', 'HebrewDescription',
+                           'ThaiDescription', 'JapaneseDescription', 'TurkishDescription']:
+            if pd.notna(row.get(desc_field)):
+                description = row.get(desc_field)
+                break
+        
+        if description:
+            lines.append(f"Description: {description}")
+        
+        # === DATES & STATUS ===
+        if pd.notna(row.get('StartDate')):
+            lines.append(f"Start Date: {row.get('StartDate')}")
+        
+        if pd.notna(row.get('EndDate')):
+            lines.append(f"End Date: {row.get('EndDate')}")
+        
+        if pd.notna(row.get('Status')):
+            lines.append(f"Status: {row.get('Status')}")
+        
+        full_text = "\n".join(lines)
+        
+        metadata = {
+            'table': table_name,
+            'type': 'competitor_product',
+            'ProductKey': int(product_key) if pd.notna(product_key) else 0,
+            'EnglishProductName': str(product_name),
+            'Company': str(company),
+        }
+        
+        if pd.notna(row.get('Color')):
+            metadata['Color'] = str(row.get('Color'))
+        if pd.notna(row.get('ListPrice')):
+            metadata['ListPrice'] = float(row.get('ListPrice'))
+        if pd.notna(row.get('ProductLine')):
+            metadata['ProductLine'] = str(row.get('ProductLine'))
+        if pd.notna(row.get('Class')):
+            metadata['Class'] = str(row.get('Class'))
+        if pd.notna(row.get('Style')):
+            metadata['Style'] = str(row.get('Style'))
+        if pd.notna(row.get('ModelName')):
+            metadata['ModelName'] = str(row.get('ModelName'))
+        
+        return {'text': full_text, 'metadata': metadata}
+    
+    def create_competitor_product_summary(self, products: List[Dict], table_name: str) -> Dict[str, Any]:
+        """Create a concise competitor product summary document"""
+        
+        total_products = len(products)
+        
+        # Group by company
+        company_counts = {}
+        company_products = {}
+        for p in products:
+            company = p.get('Company', 'Unknown')
+            company_counts[company] = company_counts.get(company, 0) + 1
+            if company not in company_products:
+                company_products[company] = []
+            company_products[company].append(p)
+        
+        prices = []
+        for p in products:
+            price = p.get('ListPrice')
+            if price is not None:
+                prices.append((price, p.get('EnglishProductName', 'Unknown'), p.get('Company', 'Unknown')))
+        
+        color_counts = {}
+        for p in products:
+            color = p.get('Color')
+            if color:
+                color_counts[color] = color_counts.get(color, 0) + 1
+        
+        line_counts = {}
+        line_names = {'M': 'Mountain', 'R': 'Road', 'S': 'Specialty', 'T': 'Touring'}
+        for p in products:
+            line = p.get('ProductLine')
+            if line:
+                line_counts[line] = line_counts.get(line, 0) + 1
+        
+        class_counts = {}
+        class_names = {'H': 'High', 'M': 'Medium', 'L': 'Low'}
+        for p in products:
+            cls = p.get('Class')
+            if cls:
+                class_counts[cls] = class_counts.get(cls, 0) + 1
+        
+        lines = [
+            "COMPETITOR PRODUCT DATABASE STATISTICS",
+            "=======================================",
+            "",
+            f"TOTAL COMPETITOR PRODUCTS: {total_products}",
+            "",
+        ]
+        
+        # Company breakdown
+        if company_counts:
+            lines.append("PRODUCTS BY COMPANY:")
+            for company, count in sorted(company_counts.items(), key=lambda x: -x[1]):
+                pct = (count / total_products) * 100
+                lines.append(f"- {company}: {count} products ({pct:.1f}%)")
+            lines.append("")
+        
+        if prices:
+            prices_sorted = sorted(prices, key=lambda x: x[0], reverse=True)
+            avg_price = sum(p[0] for p in prices) / len(prices)
+            
+            lines.extend([
+                "PRICING:",
+                f"- Products with prices: {len(prices)}",
+                f"- Average price: ${avg_price:.2f}",
+                f"- Highest price: ${prices_sorted[0][0]:.2f} ({prices_sorted[0][1]} - {prices_sorted[0][2]})",
+                f"- Lowest price: ${prices_sorted[-1][0]:.2f} ({prices_sorted[-1][1]} - {prices_sorted[-1][2]})",
+                "",
+                "TOP 10 MOST EXPENSIVE:",
+            ])
+            for price, name, company in prices_sorted[:10]:
+                lines.append(f"  ${price:.2f} - {name} ({company})")
+            lines.append("")
+        
+        if color_counts:
+            lines.append(f"COLORS ({len(color_counts)} different):")
+            for color, count in sorted(color_counts.items(), key=lambda x: -x[1]):
+                lines.append(f"- {color}: {count} products")
+            lines.append("")
+        
+        if line_counts:
+            lines.append("PRODUCT LINES:")
+            for line, count in sorted(line_counts.items(), key=lambda x: -x[1]):
+                line_display = line_names.get(line, line)
+                lines.append(f"- {line_display} ({line}): {count} products")
+            lines.append("")
+        
+        if class_counts:
+            lines.append("PRODUCT CLASSES:")
+            for cls, count in sorted(class_counts.items(), key=lambda x: -x[1]):
+                cls_display = class_names.get(cls, cls)
+                lines.append(f"- {cls_display} ({cls}): {count} products")
+        
+        summary_text = "\n".join(lines)
+        
+        metadata = {
+            'table': table_name,
+            'type': 'competitor_product_summary',
+            'total_products': total_products,
+        }
+        
+        if prices:
+            metadata['avg_price'] = sum(p[0] for p in prices) / len(prices)
+            metadata['max_price'] = max(p[0] for p in prices)
+            metadata['min_price'] = min(p[0] for p in prices)
+        
+        if company_counts:
+            metadata['companies'] = list(company_counts.keys())
+            metadata['company_counts'] = company_counts
+        
+        return {'text': summary_text, 'metadata': metadata}
+    
+    # ==================== COMPETITOR SALES PROCESSING ====================
+    
+    def process_competitor_sales_row(self, row: pd.Series, table_name: str) -> Dict[str, Any]:
+        """Convert a competitor sales row into a document"""
+        
+        product_key = row.get('ProductKey', 'Unknown')
+        order_date_key = row.get('OrderDateKey', 'Unknown')
+        company = row.get('Company', 'Unknown Company')
+        
+        lines = []
+        
+        lines.append(f"COMPETITOR SALES RECORD")
+        lines.append(f"Company: {company}")
+        lines.append(f"Product Key: {product_key}")
+        lines.append(f"Order Date Key: {order_date_key}")
+        
+        if pd.notna(row.get('SalesTerritoryKey')):
+            lines.append(f"Sales Territory Key: {row.get('SalesTerritoryKey')}")
+        
+        if pd.notna(row.get('OrderQuantity')):
+            lines.append(f"Order Quantity: {float(row.get('OrderQuantity')):.3f}")
+        
+        if pd.notna(row.get('UnitPrice')):
+            lines.append(f"Unit Price: ${float(row.get('UnitPrice')):.2f}")
+        
+        if pd.notna(row.get('StandardCost')):
+            lines.append(f"Standard Cost: ${float(row.get('StandardCost')):.2f}")
+        
+        if pd.notna(row.get('TotalProductCost')):
+            lines.append(f"Total Product Cost: ${float(row.get('TotalProductCost')):.2f}")
+        
+        if pd.notna(row.get('SalesAmount')):
+            lines.append(f"Sales Amount: ${float(row.get('SalesAmount')):.2f}")
+        
+        # Calculate profit
+        sales_amount = float(row.get('SalesAmount', 0)) if pd.notna(row.get('SalesAmount')) else 0
+        total_cost = float(row.get('TotalProductCost', 0)) if pd.notna(row.get('TotalProductCost')) else 0
+        profit = sales_amount - total_cost
+        if sales_amount > 0 or total_cost > 0:
+            lines.append(f"Profit: ${profit:.2f}")
+            if sales_amount > 0:
+                profit_margin = (profit / sales_amount) * 100
+                lines.append(f"Profit Margin: {profit_margin:.2f}%")
+        
+        full_text = "\n".join(lines)
+        
+        metadata = {
+            'table': table_name,
+            'type': 'competitor_sales',
+            'ProductKey': int(product_key) if pd.notna(product_key) else 0,
+            'OrderDateKey': int(order_date_key) if pd.notna(order_date_key) else 0,
+            'Company': str(company),
+        }
+        
+        if pd.notna(row.get('SalesAmount')):
+            metadata['SalesAmount'] = float(row.get('SalesAmount'))
+        if pd.notna(row.get('OrderQuantity')):
+            metadata['OrderQuantity'] = float(row.get('OrderQuantity'))
+        if pd.notna(row.get('UnitPrice')):
+            metadata['UnitPrice'] = float(row.get('UnitPrice'))
+        if pd.notna(row.get('SalesTerritoryKey')):
+            metadata['SalesTerritoryKey'] = int(row.get('SalesTerritoryKey'))
+        
+        return {'text': full_text, 'metadata': metadata}
+    
+    def create_competitor_sales_summary(self, sales_records: List[Dict], table_name: str) -> Dict[str, Any]:
+        """Create a concise competitor sales summary document"""
+        
+        total_records = len(sales_records)
+        
+        # Group by company
+        company_counts = {}
+        company_sales = {}
+        for r in sales_records:
+            company = r.get('Company', 'Unknown')
+            company_counts[company] = company_counts.get(company, 0) + 1
+            if company not in company_sales:
+                company_sales[company] = []
+            company_sales[company].append(r)
+        
+        # Unique products
+        unique_products = set(r.get('ProductKey') for r in sales_records if r.get('ProductKey'))
+        
+        # Sales totals
+        total_sales_amount = sum(r.get('SalesAmount', 0) or 0 for r in sales_records)
+        total_order_quantity = sum(r.get('OrderQuantity', 0) or 0 for r in sales_records)
+        total_product_cost = sum(r.get('TotalProductCost', 0) or 0 for r in sales_records if r.get('TotalProductCost'))
+        total_profit = total_sales_amount - total_product_cost
+        
+        # Unit prices
+        unit_prices = [r.get('UnitPrice') for r in sales_records if r.get('UnitPrice') is not None]
+        
+        lines = [
+            "COMPETITOR SALES DATABASE STATISTICS",
+            "====================================",
+            "",
+            f"TOTAL SALES RECORDS: {total_records}",
+            f"UNIQUE PRODUCTS SOLD: {len(unique_products)}",
+            "",
+        ]
+        
+        # Company breakdown
+        if company_counts:
+            lines.append("SALES RECORDS BY COMPANY:")
+            for company, count in sorted(company_counts.items(), key=lambda x: -x[1]):
+                pct = (count / total_records) * 100
+                company_total_sales = sum(r.get('SalesAmount', 0) or 0 for r in company_sales[company])
+                lines.append(f"- {company}: {count} records ({pct:.1f}%), Total Sales: ${company_total_sales:,.2f}")
+            lines.append("")
+        
+        lines.extend([
+            "SALES TOTALS:",
+            f"- Total Sales Amount: ${total_sales_amount:,.2f}",
+            f"- Total Order Quantity: {total_order_quantity:,.3f}",
+            f"- Total Product Cost: ${total_product_cost:,.2f}",
+            f"- Total Profit: ${total_profit:,.2f}",
+            "",
+        ])
+        
+        if total_sales_amount > 0:
+            profit_margin = (total_profit / total_sales_amount) * 100
+            lines.append(f"Overall Profit Margin: {profit_margin:.2f}%")
+            lines.append("")
+        
+        if unit_prices:
+            avg_price = sum(unit_prices) / len(unit_prices)
+            max_price = max(unit_prices)
+            min_price = min(unit_prices)
+            lines.extend([
+                "UNIT PRICE STATISTICS:",
+                f"- Average unit price: ${avg_price:.2f}",
+                f"- Highest unit price: ${max_price:.2f}",
+                f"- Lowest unit price: ${min_price:.2f}",
+                "",
+            ])
+        
+        # Top products by sales amount
+        product_sales = {}
+        for r in sales_records:
+            pk = r.get('ProductKey')
+            sales_amt = r.get('SalesAmount', 0) or 0
+            if pk:
+                if pk not in product_sales:
+                    product_sales[pk] = 0
+                product_sales[pk] += sales_amt
+        
+        if product_sales:
+            sorted_products = sorted(product_sales.items(), key=lambda x: x[1], reverse=True)
+            lines.append("TOP 10 PRODUCTS BY SALES AMOUNT:")
+            for pk, sales_amt in sorted_products[:10]:
+                lines.append(f"  Product {pk}: ${sales_amt:,.2f}")
+        
+        summary_text = "\n".join(lines)
+        
+        metadata = {
+            'table': table_name,
+            'type': 'competitor_sales_summary',
+            'total_records': total_records,
+            'unique_products': len(unique_products),
+            'total_sales_amount': total_sales_amount,
+            'total_order_quantity': total_order_quantity,
+            'total_profit': total_profit,
+        }
+        
+        if unit_prices:
+            metadata['avg_unit_price'] = sum(unit_prices) / len(unit_prices)
+        
+        if company_counts:
+            metadata['companies'] = list(company_counts.keys())
+            metadata['company_counts'] = company_counts
+        
+        return {'text': summary_text, 'metadata': metadata}
+    
     # ==================== MAIN PROCESSING ====================
     
     def process_tables(self, tables_data: Dict[str, pd.DataFrame]) -> List[Dict[str, Any]]:
@@ -610,7 +1037,28 @@ class DataProcessor:
             # Determine table type based on name
             table_lower = table_name.lower()
             
-            if 'inventory' in table_lower:
+            if 'competitorfactinternetsales' in table_lower:
+                # Process as competitor sales table
+                sales_info = []
+                for idx, row in df.iterrows():
+                    doc = self.process_competitor_sales_row(row, table_name)
+                    documents.append(doc)
+                    sales_info.append({
+                        'ProductKey': row.get('ProductKey'),
+                        'OrderDateKey': row.get('OrderDateKey'),
+                        'SalesTerritoryKey': int(row.get('SalesTerritoryKey')) if pd.notna(row.get('SalesTerritoryKey')) else None,
+                        'OrderQuantity': float(row.get('OrderQuantity')) if pd.notna(row.get('OrderQuantity')) else 0,
+                        'UnitPrice': float(row.get('UnitPrice')) if pd.notna(row.get('UnitPrice')) else None,
+                        'SalesAmount': float(row.get('SalesAmount')) if pd.notna(row.get('SalesAmount')) else 0,
+                        'TotalProductCost': float(row.get('TotalProductCost')) if pd.notna(row.get('TotalProductCost')) else None,
+                        'Company': row.get('Company') if pd.notna(row.get('Company')) else None,
+                    })
+                
+                summary_doc = self.create_competitor_sales_summary(sales_info, table_name)
+                documents.append(summary_doc)
+                print(f"  Created {len(df)} competitor sales documents + 1 summary")
+            
+            elif 'inventory' in table_lower:
                 # Process as inventory table
                 inventory_info = []
                 for idx, row in df.iterrows():
@@ -628,6 +1076,26 @@ class DataProcessor:
                 summary_doc = self.create_inventory_summary(inventory_info, table_name)
                 documents.append(summary_doc)
                 print(f"  Created {len(df)} inventory documents + 1 summary")
+            
+            elif 'competitordimproduct' in table_lower:
+                # Process as competitor product table
+                products_info = []
+                for idx, row in df.iterrows():
+                    doc = self.process_competitor_product_row(row, table_name)
+                    documents.append(doc)
+                    products_info.append({
+                        'ProductKey': row.get('ProductKey'),
+                        'EnglishProductName': row.get('EnglishProductName'),
+                        'ListPrice': float(row.get('ListPrice')) if pd.notna(row.get('ListPrice')) else None,
+                        'Color': row.get('Color') if pd.notna(row.get('Color')) else None,
+                        'ProductLine': row.get('ProductLine') if pd.notna(row.get('ProductLine')) else None,
+                        'Class': row.get('Class') if pd.notna(row.get('Class')) else None,
+                        'Company': row.get('Company') if pd.notna(row.get('Company')) else None,
+                    })
+                
+                summary_doc = self.create_competitor_product_summary(products_info, table_name)
+                documents.append(summary_doc)
+                print(f"  Created {len(df)} competitor product documents + 1 summary")
             
             elif 'dimproduct' in table_lower or (table_lower == 'dimproduct'):
                 # Process as product table (DimProduct specifically)
